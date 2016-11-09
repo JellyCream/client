@@ -15,6 +15,13 @@ LOBBY_HOST = Settings.get('lobby/host')
 LOBBY_PORT = Settings.get('lobby/port')
 LOCAL_REPLAY_PORT = Settings.get('lobby/relay/port')
 
+#TODO: remove me for production
+import os
+if not 'CI' in os.environ:
+    from PyQt4.QtGui import QMessageBox
+    QMessageBox.warning(None, "TEST server", "Important warning: This client always connects to the TEST server.\nYour account password is 'foo' and the logins may be some weeks old.")
+
+
 class ClientState(IntEnum):
     '''
     Various states the client can be in.
