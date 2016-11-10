@@ -6,6 +6,7 @@ from connectivity.JsonRpcTcpClient import JsonRpcTcpClient
 class IceAdapterClient(JsonRpcTcpClient):
 
     statusChanged = pyqtSignal(dict)
+    gpgnetmessageReceived = pyqtSignal(str, list)
 
     def __init__(self, game_session, port=7236):
         JsonRpcTcpClient.__init__(self,
@@ -26,7 +27,7 @@ class IceAdapterClient(JsonRpcTcpClient):
     def onGpgNetMessageReceived(self, header, chunks):
         self._logger.info("onGpgNetMessageReceived {} {}".format(header, chunks))
         self.game_session._on_game_message(header, chunks)
-        #self.call("status", callback_result=self.onStatus)
+        self.gpgnetmessageReceived.emit(header, chunks)
 
     def onIceConnectionStateChanged(self, localId, remoteId, state):
         self.call("status", callback_result=self.onStatus)
