@@ -129,8 +129,6 @@ class ClientWindow(FormClass, BaseClass):
     password = Settings.persisted_property('user/password', persist_if=lambda self: self.remember)
 
     gamelogs = Settings.persisted_property('game/logs', type=bool, default_value=True)
-    useUPnP = Settings.persisted_property('game/upnp', type=bool, default_value=True)
-    gamePort = Settings.persisted_property('game/port', type=int, default_value=6112)
 
     def __init__(self, *args, **kwargs):
         BaseClass.__init__(self, *args, **kwargs)
@@ -648,10 +646,13 @@ class ClientWindow(FormClass, BaseClass):
             self.progress.setLabelText("Closing main connection.")
             self.lobby_connection.disconnect()
 
-        # Clear UPnP Mappings...
-        if self.useUPnP:
-            self.progress.setLabelText("Removing UPnP port mappings")
-            fa.upnp.removePortMappings()
+        # Close connectivity dialog
+        if getattr(self, "connectivity_dialog", False):
+            self.connectivity_dialog.close()
+
+        # Close game session (and stop faf-ice-adapter.exe)
+        if getattr(self, "game_session", False):
+            self.game_session.close()
 
         # Terminate local ReplayServer
         if self.replayServer:
@@ -681,10 +682,6 @@ class ClientWindow(FormClass, BaseClass):
     def closeEvent(self, event):
         logger.info("Close Event for Application Main Window")
         self.saveWindow()
-        if getattr(self, "game_session", False):
-            self.game_session.close()
-        if getattr(self, "connectivity_dialog", False):
-            self.connectivity_dialog.close()
 
         if fa.instance.running():
             if QtGui.QMessageBox.question(self, "Are you sure?",
@@ -724,7 +721,6 @@ class ClientWindow(FormClass, BaseClass):
         self.actionClearGameFiles.triggered.connect(self.clearGameFiles)
 
         self.actionSetGamePath.triggered.connect(self.switchPath)
-        self.actionSetGamePort.triggered.connect(self.switchPort)
 
         # Toggle-Options
         self.actionSetAutoLogin.triggered.connect(self.updateOptions)
@@ -763,11 +759,6 @@ class ClientWindow(FormClass, BaseClass):
     @QtCore.pyqtSlot()
     def switchPath(self):
         fa.wizards.Wizard(self).exec_()
-
-    @QtCore.pyqtSlot()
-    def switchPort(self):
-        import loginwizards
-        loginwizards.gameSettingsWizard(self).exec_()
 
     @QtCore.pyqtSlot()
     def clearSettings(self):
@@ -1081,8 +1072,6 @@ class ClientWindow(FormClass, BaseClass):
 
         util.crash.CRASH_REPORT_USER = self.login
 
-        if self.useUPnP:
-            self.lobby_connection.set_upnp(self.gamePort)
 
         self.updateOptions()
 
@@ -1177,10 +1166,6 @@ class ClientWindow(FormClass, BaseClass):
 
         if "sim_mods" in message:
             fa.mods.checkMods(message['sim_mods'])
-
-        # UPnP Mapper - mappings are removed on app exit
-        if self.useUPnP:
-            self.lobby_connection.set_upnp(self.gamePort)
 
         info = dict(uid=message['uid'], recorder=self.login, featured_mod=message['mod'], launched_at=time.time())
 
