@@ -582,7 +582,10 @@ def md5(file_name):
 def uniqueID(user, session):
     ''' This is used to uniquely identify a user's machine to prevent smurfing. '''
     env = os.environ
-    env['PATH'] += os.pathsep + os.path.join(os.getcwd(), "lib") # the default download location for travis/Appveyor
+    # Add faf-uid to PATH
+    libdir = fafpath.get_libdir()
+    if libdir is not None:
+        env['PATH'] += os.pathsep + libdir
     # the UID check needs the WMI service running on Windows
     if sys.platform == 'win32':
         try:
