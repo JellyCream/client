@@ -1163,7 +1163,13 @@ document.getElementById('blogTerm').parentElement.parentElement.style.visibility
 
     @QtCore.pyqtSlot(QNetworkReply, list)
     def whatsnewNAMHandleSslErrors(self, reply, errors):
-        logger.warning('webview ssl error! ' + "/".join([x.errorString() for x in errors]))
+        def formatSslError(error):
+            cert = error.certificate()
+            if cert is not None:
+                return error.errorString() + '(Certificate SN: {})'.format(cert.subjectInfo(1)) #FIXME: Use constant
+            else:
+                return erro.errorString()
+        logger.warning('Webview SSL error! ' + "/".join([formatSslError(err) for err in errors]))
         reply.ignoreSslErrors()
 
     @QtCore.pyqtSlot()
