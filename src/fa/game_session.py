@@ -7,6 +7,7 @@ from fa.game_process import GameProcess, instance as game_process_instance
 
 from connectivity.IceAdapterClient import IceAdapterClient
 from connectivity.IceAdapterProcess import IceAdapterProcess
+from connectivity.IceServersPoller import IceServersPoller
 
 class GameSessionState(IntEnum):
     # Game services are entirely off
@@ -58,13 +59,16 @@ class GameSession(QObject):
         self.ice_adapter_process = IceAdapterProcess(player_id=self.player_id,
                                                      player_login=self.player_login)
         self.ice_adapter_client = IceAdapterClient(game_session=self)
-        self.ice_adapter_client.statusChanged.connect(self.onIceStatus)
+        self.ice_adapter_client.statusChanged.connect(self.onIceAdapterStarted)
         self.ice_adapter_client.connect("127.0.0.1", self.ice_adapter_process.rpc_port())
 
-    def onIceStatus(self, status):
+    def onIceAdapterStarted(self, status):
         self._relay_port = status["gpgnet"]["local_port"]
-        self._logger.info("ICE adapter started an listening on {} for GPGNet connections".format(self._relay_port))
-        self.ice_adapter_client.statusChanged.disconnect(self.onIceStatus)
+        self._logger.info("ICE adapter started an listening on port {} for GPGNet connections".format(self._relay_port))
+        self.ice_adapter_client.statusChanged.disconnect(self.onIceAdapterStarted)
+        self.ice_servers_poller = IceServersPoller(dispatcher=client.instance.lobby_dispatch,
+                                                   ice_adapter_client=self.ice_adapter_client,
+                                                   lobby_connection=client.instance.lobby_connection)
 
     def close(self):
         try:
